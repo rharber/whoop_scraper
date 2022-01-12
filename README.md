@@ -12,7 +12,11 @@ git clone https://github.com/rharber/whoop_scraper.git
 cd whoop_scraper
 pip install -r requirements.txt
 ```
-* Create a '.env' file and paste the following
+* Create a '.env' file with your whoop login credentials
+```
+WHOOP_USERNAME={your whoop username}
+WHOOP_PASSWORD={your whoop password}
+```
 
 ### Executing program
 
