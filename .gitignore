@@ -6,6 +6,7 @@
 # Extras folder
 extras/
 telegraf*.conf
+*/python/
 
 ### Node ###
 # Logs
