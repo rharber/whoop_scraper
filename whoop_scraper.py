@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
 import requests  # for getting URL
-import pytz  # timezone adjusting
 import time
 import sys
 import os
-from datetime import datetime, timedelta, date  # datetime parsing
+from datetime import datetime, timedelta, date, timezone  # datetime parsing
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -73,12 +72,12 @@ class WhoopUser:
 
     def get_data(self):
         # Compute api start/end timestamps for desired window range
-        api_end_time = self.start_datetime.replace(tzinfo=pytz.utc).strftime(
+        api_end_time = self.start_datetime.replace(tzinfo=timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%S.%fZ"
         )
         api_start_time = (
             (self.start_datetime - timedelta(seconds=self.window_seconds))
-            .replace(tzinfo=pytz.utc)
+            .replace(tzinfo=timezone.utc)
             .strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         )
 

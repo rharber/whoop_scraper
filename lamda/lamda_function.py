@@ -1,31 +1,10 @@
 #!/usr/bin/env python3
 
 import requests  # for getting URL
+import pytz
 import time
 import json
-import os
 from datetime import datetime, timedelta, date, timezone  # datetime parsing
-
-# TODO: REMOVE
-from dotenv import load_dotenv, find_dotenv
-
-load_dotenv(find_dotenv())
-
-WHOOP_USERNAME = os.getenv("WHOOP_USERNAME")
-WHOOP_PASSWORD = os.getenv("WHOOP_PASSWORD")
-
-
-def main():
-    try:
-        user = WhoopUser(WHOOP_USERNAME, WHOOP_PASSWORD)
-        user.print_line_protocol()
-        print(user.lines)
-
-    except Exception as e:
-        print(f'error msg="{e}" {time.time_ns()}')
-
-
-# TODO: END REMOVE
 
 #################################################################
 class WhoopUser:
@@ -47,12 +26,15 @@ class WhoopUser:
     ) -> None:
         self.username = username
         self.password = password
+        self.lines = []
+        self.data_raw = self.userid = self.access_token = None
         self.get_token()
-        self.start_date = start_date
-        self.set_start_dt()
-        self.window_seconds = window_s
-        self.interval_seconds = interval_s
-        self.get_data()
+        if self.userid:
+            self.start_date = start_date
+            self.set_start_dt()
+            self.window_seconds = window_s
+            self.interval_seconds = interval_s
+            self.get_data()
 
     def get_token(self):
         # Post credentials
@@ -68,8 +50,8 @@ class WhoopUser:
         # Exit if fail
         if r.status_code != 200:
             msg = "Fail - Credentials rejected."
-            print(f'error msg="{msg}" {time.time_ns()}')
-            exit()
+            self.lines.append(f'error msg="{msg}" {time.time_ns()}')
+            return
 
         # Set userid/token variables
         self.userid = r.json()["user"]["id"]
@@ -104,14 +86,13 @@ class WhoopUser:
         # Check if user/auth are accepted
         if r.status_code != 200:
             msg = "Fail - User ID / auth token rejected."
-            print(f'error msg="{msg}" {time.time_ns()}')
-            exit()
+            self.lines.append(f'error msg="{msg}" {time.time_ns()}')
+            return
 
         # Convert to JSON
         self.data_raw = r.json()
 
     def print_line_protocol(self):
-        self.lines = []
         try:
             for heartrate in self.data_raw["values"]:
                 bpm = heartrate["data"]
@@ -134,22 +115,25 @@ class WhoopUser:
 
 
 def lambda_handler(event, context):
-    username = password = body = lines = ""
+    username = password = body = ""
+    lines = []
+    resp_body = {}
 
-    if event["body"]:
+    try:
         body = json.loads(event["body"])
         username = body.get("whoop_username", None)
         password = body.get("whoop_password", None)
 
-    try:
-        user = WhoopUser(username, password)
-        user.print_line_protocol()
-        lines = user.lines
+        try:
+            user = WhoopUser(username, password)
+            if user.data_raw:
+                user.print_line_protocol()
+            lines = user.lines
+        except Exception as e:
+            lines.append(f'error msg="{e}" {time.time_ns()}')
+
+        resp_body = {"statusCode": 200, "body": "\n".join(lines)}
     except Exception as e:
-        lines = [f'error msg="{e}" {time.time_ns()}']
+        resp_body = {"statusCode": 400, "body": json.dumps({"message": str(e)})}
 
-    return {"statusCode": 200, "body": json.dumps({"lines": lines})}
-
-
-if __name__ == "__main__":
-    main()
+    return resp_body
