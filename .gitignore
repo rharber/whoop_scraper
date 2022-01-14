@@ -7,6 +7,7 @@
 extras/
 telegraf*.conf
 */lamda/python/
+*api-testing*
 
 ### Node ###
 # Logs

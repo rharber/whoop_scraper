@@ -2,6 +2,7 @@
 
 import requests  # for getting URL
 import time
+import pytz
 import sys
 import os
 from datetime import datetime, timedelta, date, timezone  # datetime parsing
