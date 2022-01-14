@@ -6,7 +6,7 @@
 # Extras folder
 extras/
 telegraf*.conf
-*/python/
+*/lamda/python/
 
 ### Node ###
 # Logs
