@@ -154,13 +154,18 @@ class WhoopUser:
                     print(
                         f"sleep,user_id={self.userid} sleep_score={sleep['score']} {ns}"
                     )
-                if day["strain"] and day["strain"]["workouts"]:
-                    for workout in day["strain"]["workouts"]:
-                        dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
-                        ns = int(round(dt.timestamp())) * 1000 * 1000000
-                        print(
-                            f"workout,user_id={self.userid} max_heartrate={workout['maxHeartRate']} {ns}"
-                        )
+                if day["strain"]:
+                    strain = day["strain"]
+                    dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
+                    ns = int(round(dt.timestamp())) * 1000 * 1000000
+                    print(
+                        f"strain,user_id={self.userid} score={round(strain['score'], 2)},avg_heartrate={strain['averageHeartRate']},max_heartrate={strain['maxHeartRate']} {ns}"
+                    )
+                    if strain["workouts"]:
+                        for workout in strain["workouts"]:
+                            print(
+                                f"workout,user_id={self.userid} max_heartrate={workout['maxHeartRate']} {ns}"
+                            )
 
         except Exception as e:
             print(f'error msg="{e}" {time.time_ns()}')
