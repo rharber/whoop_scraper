@@ -143,7 +143,7 @@ class WhoopUser:
         try:
             for heartrate in self.heartrate_data["values"]:
                 bpm = heartrate["data"]
-                ns = heartrate["time"] * 1000
+                ns = heartrate["time"] * 1000000
                 print(f"heartrate,user_id={self.userid} bpm={bpm} {ns}")
 
             for day in self.sleep_workout_data:
