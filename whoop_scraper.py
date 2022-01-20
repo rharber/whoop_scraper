@@ -47,9 +47,9 @@ class WhoopUser:
         self.start_date = start_date
         self.window_seconds = window_s
         self.interval_seconds = interval_s
-        self.set_api_timestamps()
+        # self.heartrate_data = {"values": []}
         self.get_heartrate_data()
-        # TODO: self.get_cycle_data()
+        self.get_cycle_data()
 
     def get_token(self):
         # Post credentials
@@ -72,12 +72,16 @@ class WhoopUser:
         self.userid = r.json()["user"]["id"]
         self.access_token = r.json()["access_token"]
 
-    def set_api_timestamps(self):
+    def set_api_timestamps(self, data_type="heartrate"):
         self.start_datetime = (
             datetime.combine(self.start_date, datetime.min.time())
             if self.start_date
             else datetime.utcnow()
         )
+
+        if data_type == "cycle":
+            self.window_seconds = 432000  # make window 5 days for cycle data only
+
         # Compute api start/end timestamps for desired window range
         self.api_end_time = self.start_datetime.replace(tzinfo=timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -89,17 +93,17 @@ class WhoopUser:
         )
 
     def get_heartrate_data(self):
-        # Download heartrate data
-        url = "https://api-7.whoop.com/users/{}/metrics/heart_rate".format(self.userid)
+        self.set_api_timestamps()
+
+        url = f"https://api-7.whoop.com/users/{self.userid}/metrics/heart_rate"
 
         params = {
             "start": self.api_start_time,
             "end": self.api_end_time,
             "step": self.interval_seconds,
-        }
-        # (FORMAT) params = {"start": "2022-01-01T00:00:00.000Z", "end": "2030-01-01T00:00:00.000Z"}
+        }  # (FORMAT) params = {"start": "2022-01-01T00:00:00.000Z", "end": "2030-01-01T00:00:00.000Z"}
 
-        headers = {"Authorization": "bearer {}".format(self.access_token)}
+        headers = {"Authorization": f"bearer {self.access_token}"}
 
         r = requests.get(url, params=params, headers=headers)
 
@@ -113,16 +117,16 @@ class WhoopUser:
         self.heartrate_data = r.json()
 
     def get_cycle_data(self):
-        # Download heartrate data
-        url = "https://api-7.whoop.com/users/{}/cycles".format(self.userid)
+        self.set_api_timestamps("cycle")
+
+        url = f"https://api-7.whoop.com/users/{self.userid}/cycles"
 
         params = {
             "start": self.api_start_time,
             "end": self.api_end_time,
-        }
-        # (FORMAT) params = {"start": "2022-01-01T00:00:00.000Z", "end": "2030-01-01T00:00:00.000Z"}
+        }  # (FORMAT) params = {"start": "2022-01-01T00:00:00.000Z", "end": "2030-01-01T00:00:00.000Z"}
 
-        headers = {"Authorization": "bearer {}".format(self.access_token)}
+        headers = {"Authorization": f"bearer {self.access_token}"}
 
         r = requests.get(url, params=params, headers=headers)
 
@@ -139,14 +143,24 @@ class WhoopUser:
         try:
             for heartrate in self.heartrate_data["values"]:
                 bpm = heartrate["data"]
-                ns = heartrate["time"] * 1000000
+                ns = heartrate["time"] * 1000
                 print(f"heartrate,user_id={self.userid} bpm={bpm} {ns}")
 
-            # for day in self.sleep_workout_data:
-            #     #TODO: Implement
-            #     bpm = heartrate["data"]
-            #     ns = heartrate["time"] * 1000000
-            #     print(f"heartrate,user_id={self.userid} bpm={bpm} {ns}")
+            for day in self.sleep_workout_data:
+                if day["sleep"] and day["sleep"]["state"] == "complete":
+                    dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
+                    ns = int(round(dt.timestamp())) * 1000 * 1000000
+                    sleep = day["sleep"]
+                    print(
+                        f"sleep,user_id={self.userid} sleep_score={sleep['score']} {ns}"
+                    )
+                if day["strain"] and day["strain"]["workouts"]:
+                    for workout in day["strain"]["workouts"]:
+                        dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
+                        ns = int(round(dt.timestamp())) * 1000 * 1000000
+                        print(
+                            f"workout,user_id={self.userid} max_heartrate={workout['maxHeartRate']} {ns}"
+                        )
 
         except Exception as e:
             print(f'error msg="{e}" {time.time_ns()}')
