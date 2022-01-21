@@ -141,31 +141,34 @@ class WhoopUser:
 
     def print_line_protocol(self):
         try:
+            # Print line protocol for heartrate data (1 point per interval)
             for heartrate in self.heartrate_data["values"]:
                 bpm = heartrate["data"]
                 ns = heartrate["time"] * 1000000
                 print(f"heartrate,user_id={self.userid} bpm={bpm} {ns}")
 
+            # Print l.p. for sleep, strain, and workout data
             for day in self.sleep_workout_data:
-                if day["sleep"] and day["sleep"]["state"] == "complete":
-                    dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
+                dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
+
+                # Only print data for days past
+                if dt.date() < datetime.now().date():
                     ns = int(round(dt.timestamp())) * 1000 * 1000000
-                    sleep = day["sleep"]
-                    print(
-                        f"sleep,user_id={self.userid} sleep_score={sleep['score']} {ns}"
-                    )
-                if day["strain"]:
-                    strain = day["strain"]
-                    dt = datetime.strptime(day["days"][0], "%Y-%m-%d")
-                    ns = int(round(dt.timestamp())) * 1000 * 1000000
-                    print(
-                        f"strain,user_id={self.userid} score={round(strain['score'], 2)},avg_heartrate={strain['averageHeartRate']},max_heartrate={strain['maxHeartRate']} {ns}"
-                    )
-                    if strain["workouts"]:
-                        for workout in strain["workouts"]:
-                            print(
-                                f"workout,user_id={self.userid} max_heartrate={workout['maxHeartRate']} {ns}"
-                            )
+                    if day["sleep"] and day["sleep"]["state"] == "complete":
+                        sleep = day["sleep"]
+                        print(
+                            f"sleep,user_id={self.userid} sleep_score={sleep['score']} {ns}"
+                        )
+                    if day["strain"]:
+                        strain = day["strain"]
+                        print(
+                            f"strain,user_id={self.userid} score={round(strain['score'], 2)},avg_heartrate={strain['averageHeartRate']},max_heartrate={strain['maxHeartRate']} {ns}"
+                        )
+                        if strain["workouts"]:
+                            for workout in strain["workouts"]:
+                                print(
+                                    f"workout,user_id={self.userid} max_heartrate={workout['maxHeartRate']} {ns}"
+                                )
 
         except Exception as e:
             print(f'error msg="{e}" {time.time_ns()}')
